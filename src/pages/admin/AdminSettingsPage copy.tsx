@@ -12,17 +12,83 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Loader
+  Loader,
+  Moon,
+  Sun,
+  Monitor,
+  Lock,
+  Key,
+  UserCheck,
+  Globe,
+  Phone,
+  MapPin,
+  Camera,
+  Edit3
 } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useSettings } from '../../context/SettingsContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const AdminSettingsPage = () => {
   const { settings, updateSettings, loading, error } = useSettings();
+  const { user, updateProfile, updatePassword, updateEmail } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('marketplace');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Profile form state
+  const [profileData, setProfileData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    website: user?.website || '',
+    bio: user?.bio || ''
+  });
+
+  // Notification settings state
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true,
+    orderNotifications: true,
+    inquiryNotifications: true,
+    systemNotifications: false,
+    marketingEmails: false,
+    weeklyReports: true,
+    instantAlerts: true,
+    soundEnabled: true
+  });
+
+  // Security settings state
+  const [securitySettings, setSecuritySettings] = useState({
+    twoFactorEnabled: false,
+    loginAlerts: true,
+    sessionTimeout: '24',
+    passwordExpiry: '90',
+    allowMultipleSessions: true,
+    requireStrongPassword: true,
+    logSecurityEvents: true
+  });
+
+  // Password change state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Email change state (updated to require password instead of confirm email)
+  const [emailForm, setEmailForm] = useState({
+    newEmail: '',
+    password: ''
+  });
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Color palette definitions
   const colorPalettes = [
@@ -94,6 +160,24 @@ const AdminSettingsPage = () => {
     }
   };
 
+  const handleProfileSave = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      await updateProfile(profileData);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setSaveError('Failed to update profile. Please try again.');
+      setTimeout(() => setSaveError(null), 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleMarketplaceModeToggle = async () => {
     const newSettings = {
       ...settings,
@@ -139,6 +223,84 @@ const AdminSettingsPage = () => {
 
   const getCurrentPalette = () => {
     return colorPalettes.find(p => p.id === settings.colorPalette) || colorPalettes[5]; // Default to teal-cyan
+  };
+
+  // Enhanced password change handler
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError('All fields are required');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters long');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordError(null);
+    setPasswordSuccess(false);
+
+    try {
+      await updatePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      setPasswordSuccess(true);
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setTimeout(() => setPasswordSuccess(false), 5000);
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : 'Failed to update password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // Enhanced email change handler with password verification
+  const handleEmailChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!emailForm.newEmail || !emailForm.password) {
+      setEmailError('Please fill in all fields');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailForm.newEmail)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    if (emailForm.newEmail === user?.email) {
+      setEmailError('New email must be different from current email');
+      return;
+    }
+
+    setEmailLoading(true);
+    setEmailError(null);
+    setEmailSuccess(false);
+
+    try {
+      await updateEmail(emailForm.newEmail, emailForm.password);
+      setEmailSuccess(true);
+      setEmailForm({
+        newEmail: '',
+        password: ''
+      });
+      setTimeout(() => setEmailSuccess(false), 5000);
+    } catch (error) {
+      setEmailError(error instanceof Error ? error.message : 'Failed to update email');
+    } finally {
+      setEmailLoading(false);
+    }
   };
 
   const tabs = [
@@ -337,17 +499,120 @@ const AdminSettingsPage = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium text-slate-900 dark:text-slate-200 mb-4">
-                    Profile Settings
+                    Profile Information
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">
-                    Manage your profile information and preferences.
+                    Update your personal information and profile details.
                   </p>
                 </div>
-                
+
+                {/* Profile Picture */}
                 <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Profile settings will be implemented in a future update.
-                  </p>
+                  <div className="flex items-center space-x-6">
+                    <div className="relative">
+                      <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                        <User className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <button className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 rounded-full p-2 shadow-md border border-slate-200 dark:border-slate-600">
+                        <Camera className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                      </button>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-slate-900 dark:text-slate-200">Profile Picture</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Upload a new profile picture</p>
+                      <button className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                        Change Picture
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Form */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={profileData.name}
+                      onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={profileData.email}
+                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={profileData.phone}
+                      onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Website
+                    </label>
+                    <input
+                      type="url"
+                      value={profileData.website}
+                      onChange={(e) => setProfileData({ ...profileData, website: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                      placeholder="https://yourwebsite.com"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Bio
+                  </label>
+                  <textarea
+                    value={profileData.bio}
+                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                    placeholder="Tell us about yourself..."
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleProfileSave}
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Profile
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             )}
@@ -357,17 +622,119 @@ const AdminSettingsPage = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium text-slate-900 dark:text-slate-200 mb-4">
-                    Notification Settings
+                    Notification Preferences
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">
                     Configure how and when you receive notifications.
                   </p>
                 </div>
-                
+
+                {/* Email Notifications */}
                 <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Notification settings will be implemented in a future update.
-                  </p>
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
+                    <Mail className="h-5 w-5 mr-2" />
+                    Email Notifications
+                  </h4>
+                  <div className="space-y-4">
+                    {[
+                      {
+                        key: 'emailNotifications',
+                        title: 'Email Notifications',
+                        description: 'Receive notifications via email'
+                      },
+                      {
+                        key: 'orderNotifications',
+                        title: 'Order Notifications',
+                        description: 'Get notified about new orders and payments'
+                      },
+                      {
+                        key: 'inquiryNotifications',
+                        title: 'Inquiry Notifications',
+                        description: 'Receive alerts for new project inquiries'
+                      },
+                      {
+                        key: 'weeklyReports',
+                        title: 'Weekly Reports',
+                        description: 'Get weekly summary reports via email'
+                      },
+                      {
+                        key: 'marketingEmails',
+                        title: 'Marketing Emails',
+                        description: 'Receive promotional and marketing emails'
+                      }
+                    ].map((setting) => (
+                      <div key={setting.key} className="flex items-center justify-between py-2">
+                        <div>
+                          <h5 className="font-medium text-slate-900 dark:text-slate-200">{setting.title}</h5>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">{setting.description}</p>
+                        </div>
+                        <button
+                          onClick={() => setNotificationSettings({
+                            ...notificationSettings,
+                            [setting.key]: !notificationSettings[setting.key as keyof typeof notificationSettings]
+                          })}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            notificationSettings[setting.key as keyof typeof notificationSettings] ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-600'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              notificationSettings[setting.key as keyof typeof notificationSettings] ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* System Notifications */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
+                    <Bell className="h-5 w-5 mr-2" />
+                    System Notifications
+                  </h4>
+                  <div className="space-y-4">
+                    {[
+                      {
+                        key: 'systemNotifications',
+                        title: 'System Notifications',
+                        description: 'Receive system alerts and updates'
+                      },
+                      {
+                        key: 'instantAlerts',
+                        title: 'Instant Alerts',
+                        description: 'Get real-time notifications for urgent matters'
+                      },
+                      {
+                        key: 'soundEnabled',
+                        title: 'Sound Notifications',
+                        description: 'Play sound for new notifications'
+                      }
+                    ].map((setting) => (
+                      <div key={setting.key} className="flex items-center justify-between py-2">
+                        <div>
+                          <h5 className="font-medium text-slate-900 dark:text-slate-200">{setting.title}</h5>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">{setting.description}</p>
+                        </div>
+                        <button
+                          onClick={() => setNotificationSettings({
+                            ...notificationSettings,
+                            [setting.key]: !notificationSettings[setting.key as keyof typeof notificationSettings]
+                          })}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            notificationSettings[setting.key as keyof typeof notificationSettings] ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-600'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              notificationSettings[setting.key as keyof typeof notificationSettings] ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -377,17 +744,324 @@ const AdminSettingsPage = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium text-slate-900 dark:text-slate-200 mb-4">
-                    Security Settings
+                    Security & Privacy
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">
                     Manage your account security and access controls.
                   </p>
                 </div>
-                
+
+                {/* Change Password Section */}
                 <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Security settings will be implemented in a future update.
-                  </p>
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
+                    <Key className="h-5 w-5 mr-2" />
+                    Change Password
+                  </h4>
+                  
+                  {passwordSuccess && (
+                    <div className="mb-4 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 p-3 rounded-lg flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Password updated successfully!
+                    </div>
+                  )}
+
+                  {passwordError && (
+                    <div className="mb-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 p-3 rounded-lg flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      {passwordError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePasswordChange} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                        placeholder="Enter your current password"
+                        disabled={passwordLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                        placeholder="Enter your new password"
+                        disabled={passwordLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                        placeholder="Confirm your new password"
+                        disabled={passwordLoading}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    >
+                      {passwordLoading ? (
+                        <>
+                          <Loader className="h-4 w-4 mr-2 animate-spin" />
+                          Updating Password...
+                        </>
+                      ) : (
+                        <>
+                          <Key className="h-4 w-4 mr-2" />
+                          Update Password
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Change Email Address Section - Updated Version */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
+                    <Mail className="h-5 w-5 mr-2" />
+                    Change Email Address
+                  </h4>
+                  
+                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      <strong>Current Email:</strong> {user?.email}
+                    </p>
+                  </div>
+
+                  {emailSuccess && (
+                    <div className="mb-4 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 p-3 rounded-lg flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Email address updated successfully!
+                    </div>
+                  )}
+
+                  {emailError && (
+                    <div className="mb-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 p-3 rounded-lg flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      {emailError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleEmailChange} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        New Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={emailForm.newEmail}
+                        onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                        placeholder="Enter your new email address"
+                        disabled={emailLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Current Password (for verification)
+                      </label>
+                      <input
+                        type="password"
+                        value={emailForm.password}
+                        onChange={(e) => setEmailForm({ ...emailForm, password: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                        placeholder="Enter your current password"
+                        disabled={emailLoading}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={emailLoading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    >
+                      {emailLoading ? (
+                        <>
+                          <Loader className="h-4 w-4 mr-2 animate-spin" />
+                          Updating Email...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Update Email
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Authentication */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
+                    <Lock className="h-5 w-5 mr-2" />
+                    Authentication
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <h5 className="font-medium text-slate-900 dark:text-slate-200">Two-Factor Authentication</h5>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Add an extra layer of security to your account</p>
+                      </div>
+                      <button
+                        onClick={() => setSecuritySettings({
+                          ...securitySettings,
+                          twoFactorEnabled: !securitySettings.twoFactorEnabled
+                        })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          securitySettings.twoFactorEnabled ? 'bg-green-600' : 'bg-slate-200 dark:bg-slate-600'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            securitySettings.twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <h5 className="font-medium text-slate-900 dark:text-slate-200">Login Alerts</h5>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Get notified of new login attempts</p>
+                      </div>
+                      <button
+                        onClick={() => setSecuritySettings({
+                          ...securitySettings,
+                          loginAlerts: !securitySettings.loginAlerts
+                        })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          securitySettings.loginAlerts ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-600'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            securitySettings.loginAlerts ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Session Management */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
+                    <Clock className="h-5 w-5 mr-2" />
+                    Session Management
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Session Timeout (hours)
+                      </label>
+                      <select
+                        value={securitySettings.sessionTimeout}
+                        onChange={(e) => setSecuritySettings({
+                          ...securitySettings,
+                          sessionTimeout: e.target.value
+                        })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                      >
+                        <option value="1">1 hour</option>
+                        <option value="8">8 hours</option>
+                        <option value="24">24 hours</option>
+                        <option value="168">1 week</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <h5 className="font-medium text-slate-900 dark:text-slate-200">Allow Multiple Sessions</h5>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Allow login from multiple devices</p>
+                      </div>
+                      <button
+                        onClick={() => setSecuritySettings({
+                          ...securitySettings,
+                          allowMultipleSessions: !securitySettings.allowMultipleSessions
+                        })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          securitySettings.allowMultipleSessions ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-600'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            securitySettings.allowMultipleSessions ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password Policy */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
+                    <Key className="h-5 w-5 mr-2" />
+                    Password Policy
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Password Expiry (days)
+                      </label>
+                      <select
+                        value={securitySettings.passwordExpiry}
+                        onChange={(e) => setSecuritySettings({
+                          ...securitySettings,
+                          passwordExpiry: e.target.value
+                        })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                      >
+                        <option value="30">30 days</option>
+                        <option value="60">60 days</option>
+                        <option value="90">90 days</option>
+                        <option value="never">Never</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <h5 className="font-medium text-slate-900 dark:text-slate-200">Require Strong Password</h5>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Enforce strong password requirements</p>
+                      </div>
+                      <button
+                        onClick={() => setSecuritySettings({
+                          ...securitySettings,
+                          requireStrongPassword: !securitySettings.requireStrongPassword
+                        })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          securitySettings.requireStrongPassword ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-600'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            securitySettings.requireStrongPassword ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -397,17 +1071,95 @@ const AdminSettingsPage = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium text-slate-900 dark:text-slate-200 mb-4">
-                    Appearance Settings
+                    Appearance & Display
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">
                     Customize the look and feel of your application.
                   </p>
                 </div>
-                
+
+                {/* Theme Selection */}
                 <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
-                  <p className="text-slate-600 dark:text-slate-400">
-                    Appearance settings will be implemented in a future update.
-                  </p>
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
+                    <Eye className="h-5 w-5 mr-2" />
+                    Theme Preference
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      { id: 'light', label: 'Light', icon: Sun, description: 'Light theme' },
+                      { id: 'dark', label: 'Dark', icon: Moon, description: 'Dark theme' },
+                      { id: 'system', label: 'System', icon: Monitor, description: 'Follow system preference' }
+                    ].map((themeOption) => {
+                      const Icon = themeOption.icon;
+                      const isSelected = theme === themeOption.id;
+                      return (
+                        <button
+                          key={themeOption.id}
+                          onClick={() => setTheme(themeOption.id as any)}
+                          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                            isSelected 
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                              : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
+                          }`}
+                        >
+                          <Icon className={`h-8 w-8 mx-auto mb-2 ${
+                            isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400'
+                          }`} />
+                          <div className={`font-medium ${
+                            isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-900 dark:text-slate-200'
+                          }`}>
+                            {themeOption.label}
+                            {isSelected && <CheckCircle className="inline-block w-4 h-4 ml-2" />}
+                          </div>
+                          <p className={`text-sm mt-1 ${
+                            isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400'
+                          }`}>
+                            {themeOption.description}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Display Options */}
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4">Display Options</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Font Size
+                      </label>
+                      <select className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Sidebar Width
+                      </label>
+                      <select className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200">
+                        <option value="compact">Compact</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="wide">Wide</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <h5 className="font-medium text-slate-900 dark:text-slate-200">Reduced Motion</h5>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Minimize animations and transitions</p>
+                      </div>
+                      <button
+                        className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-slate-200 dark:bg-slate-600"
+                      >
+                        <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
