@@ -32,7 +32,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 const AdminSettingsPage = () => {
   const { settings, updateSettings, loading, error } = useSettings();
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, updatePassword, updateEmail } = useAuth();
   const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('marketplace');
   const [isSaving, setIsSaving] = useState(false);
@@ -81,10 +81,10 @@ const AdminSettingsPage = () => {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Email change state
+  // Email change state (updated to require password instead of confirm email)
   const [emailForm, setEmailForm] = useState({
     newEmail: '',
-    confirmEmail: ''
+    password: ''
   });
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState(false);
@@ -225,11 +225,10 @@ const AdminSettingsPage = () => {
     return colorPalettes.find(p => p.id === settings.colorPalette) || colorPalettes[5]; // Default to teal-cyan
   };
 
-  // Password change handler
+  // Enhanced password change handler
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       setPasswordError('All fields are required');
       return;
@@ -250,48 +249,33 @@ const AdminSettingsPage = () => {
     setPasswordSuccess(false);
 
     try {
-      // Simulate API call to Supabase auth
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // In real implementation, you would call Supabase auth API:
-      // const { error } = await supabase.auth.updateUser({
-      //   password: passwordForm.newPassword
-      // });
-      
-      // For demo, we'll simulate success
+      await updatePassword(passwordForm.currentPassword, passwordForm.newPassword);
       setPasswordSuccess(true);
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
-      
       setTimeout(() => setPasswordSuccess(false), 5000);
     } catch (error) {
-      setPasswordError('Failed to update password. Please try again.');
+      setPasswordError(error instanceof Error ? error.message : 'Failed to update password');
     } finally {
       setPasswordLoading(false);
     }
   };
 
-  // Email change handler
+  // Enhanced email change handler with password verification
   const handleEmailChange = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    if (!emailForm.newEmail || !emailForm.confirmEmail) {
-      setEmailError('Both email fields are required');
+    if (!emailForm.newEmail || !emailForm.password) {
+      setEmailError('Please fill in all fields');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailForm.newEmail)) {
       setEmailError('Please enter a valid email address');
-      return;
-    }
-
-    if (emailForm.newEmail !== emailForm.confirmEmail) {
-      setEmailError('Email addresses do not match');
       return;
     }
 
@@ -305,24 +289,15 @@ const AdminSettingsPage = () => {
     setEmailSuccess(false);
 
     try {
-      // Simulate API call to Supabase auth
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // In real implementation, you would call Supabase auth API:
-      // const { error } = await supabase.auth.updateUser({
-      //   email: emailForm.newEmail
-      // });
-      
-      // For demo, we'll simulate success
+      await updateEmail(emailForm.newEmail, emailForm.password);
       setEmailSuccess(true);
       setEmailForm({
         newEmail: '',
-        confirmEmail: ''
+        password: ''
       });
-      
       setTimeout(() => setEmailSuccess(false), 5000);
     } catch (error) {
-      setEmailError('Failed to update email address. Please try again.');
+      setEmailError(error instanceof Error ? error.message : 'Failed to update email');
     } finally {
       setEmailLoading(false);
     }
@@ -860,7 +835,7 @@ const AdminSettingsPage = () => {
                   </form>
                 </div>
 
-                {/* Change Email Address Section */}
+                {/* Change Email Address Section - Updated Version */}
                 <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
                   <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
                     <Mail className="h-5 w-5 mr-2" />
@@ -904,14 +879,14 @@ const AdminSettingsPage = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Confirm New Email Address
+                        Current Password (for verification)
                       </label>
                       <input
-                        type="email"
-                        value={emailForm.confirmEmail}
-                        onChange={(e) => setEmailForm({ ...emailForm, confirmEmail: e.target.value })}
+                        type="password"
+                        value={emailForm.password}
+                        onChange={(e) => setEmailForm({ ...emailForm, password: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
-                        placeholder="Confirm your new email address"
+                        placeholder="Enter your current password"
                         disabled={emailLoading}
                       />
                     </div>
