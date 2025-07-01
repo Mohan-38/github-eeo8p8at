@@ -81,9 +81,10 @@ const AdminSettingsPage = () => {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Email change state (updated to require password instead of confirm email)
+  // Email change state
   const [emailForm, setEmailForm] = useState({
     newEmail: '',
+    confirmEmail: '',
     password: ''
   });
   const [emailLoading, setEmailLoading] = useState(false);
@@ -93,52 +94,148 @@ const AdminSettingsPage = () => {
   // Color palette definitions
   const colorPalettes = [
     {
+      id: 'default',
+      name: 'Default',
+      description: 'Original website colors',
+      colors: ['#3b82f6', '#1d4ed8', '#1e40af', '#1e3a8a'],
+      cssVars: {
+        '--color-primary': '#3b82f6',
+        '--color-primary-dark': '#1d4ed8',
+        '--color-secondary': '#1e40af',
+        '--color-accent': '#1e3a8a',
+        '--bg-primary': '#ffffff',
+        '--bg-secondary': '#f8fafc',
+        '--text-primary': '#1f2937',
+        '--text-secondary': '#6b7280'
+      }
+    },
+    {
       id: 'ocean-blue',
       name: 'Ocean Blue',
       description: 'Professional blue theme with clean aesthetics',
-      colors: ['#0ea5e9', '#0284c7', '#0369a1', '#075985']
+      colors: ['#0ea5e9', '#0284c7', '#0369a1', '#075985'],
+      cssVars: {
+        '--color-primary': '#0ea5e9',
+        '--color-primary-dark': '#0284c7',
+        '--color-secondary': '#0369a1',
+        '--color-accent': '#075985',
+        '--bg-primary': '#f0f9ff',
+        '--bg-secondary': '#e0f2fe',
+        '--text-primary': '#0c4a6e',
+        '--text-secondary': '#0369a1'
+      }
     },
     {
       id: 'sunset-orange',
       name: 'Sunset Orange',
       description: 'Warm and energetic orange-red palette',
-      colors: ['#f97316', '#ea580c', '#dc2626', '#b91c1c']
+      colors: ['#f97316', '#ea580c', '#dc2626', '#b91c1c'],
+      cssVars: {
+        '--color-primary': '#f97316',
+        '--color-primary-dark': '#ea580c',
+        '--color-secondary': '#dc2626',
+        '--color-accent': '#b91c1c',
+        '--bg-primary': '#fff7ed',
+        '--bg-secondary': '#ffedd5',
+        '--text-primary': '#9a3412',
+        '--text-secondary': '#ea580c'
+      }
     },
     {
       id: 'forest-green',
       name: 'Forest Green',
       description: 'Natural green theme inspired by nature',
-      colors: ['#10b981', '#059669', '#047857', '#065f46']
+      colors: ['#10b981', '#059669', '#047857', '#065f46'],
+      cssVars: {
+        '--color-primary': '#10b981',
+        '--color-primary-dark': '#059669',
+        '--color-secondary': '#047857',
+        '--color-accent': '#065f46',
+        '--bg-primary': '#f0fdf4',
+        '--bg-secondary': '#dcfce7',
+        '--text-primary': '#14532d',
+        '--text-secondary': '#166534'
+      }
     },
     {
       id: 'royal-purple',
       name: 'Royal Purple',
       description: 'Elegant purple theme with luxury feel',
-      colors: ['#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6']
+      colors: ['#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6'],
+      cssVars: {
+        '--color-primary': '#8b5cf6',
+        '--color-primary-dark': '#7c3aed',
+        '--color-secondary': '#6d28d9',
+        '--color-accent': '#5b21b6',
+        '--bg-primary': '#faf5ff',
+        '--bg-secondary': '#f3e8ff',
+        '--text-primary': '#581c87',
+        '--text-secondary': '#7c3aed'
+      }
     },
     {
       id: 'rose-pink',
       name: 'Rose Pink',
       description: 'Soft and modern pink theme',
-      colors: ['#f472b6', '#ec4899', '#db2777', '#be185d']
+      colors: ['#f472b6', '#ec4899', '#db2777', '#be185d'],
+      cssVars: {
+        '--color-primary': '#f472b6',
+        '--color-primary-dark': '#ec4899',
+        '--color-secondary': '#db2777',
+        '--color-accent': '#be185d',
+        '--bg-primary': '#fdf2f8',
+        '--bg-secondary': '#fce7f3',
+        '--text-primary': '#9d174d',
+        '--text-secondary': '#be185d'
+      }
     },
     {
       id: 'teal-cyan',
       name: 'Teal Cyan',
       description: 'Fresh and modern teal-cyan combination',
-      colors: ['#06b6d4', '#0891b2', '#0e7490', '#155e75']
+      colors: ['#06b6d4', '#0891b2', '#0e7490', '#155e75'],
+      cssVars: {
+        '--color-primary': '#06b6d4',
+        '--color-primary-dark': '#0891b2',
+        '--color-secondary': '#0e7490',
+        '--color-accent': '#155e75',
+        '--bg-primary': '#f0fdfa',
+        '--bg-secondary': '#ccfbf1',
+        '--text-primary': '#134e4a',
+        '--text-secondary': '#0f766e'
+      }
     },
     {
       id: 'golden-amber',
       name: 'Golden Amber',
       description: 'Warm golden theme with rich tones',
-      colors: ['#f59e0b', '#d97706', '#b45309', '#92400e']
+      colors: ['#f59e0b', '#d97706', '#b45309', '#92400e'],
+      cssVars: {
+        '--color-primary': '#f59e0b',
+        '--color-primary-dark': '#d97706',
+        '--color-secondary': '#b45309',
+        '--color-accent': '#92400e',
+        '--bg-primary': '#fffbeb',
+        '--bg-secondary': '#fef3c7',
+        '--text-primary': '#78350f',
+        '--text-secondary': '#92400e'
+      }
     },
     {
       id: 'deep-indigo',
       name: 'Deep Indigo',
       description: 'Professional indigo with sophisticated appeal',
-      colors: ['#6366f1', '#4f46e5', '#4338ca', '#3730a3']
+      colors: ['#6366f1', '#4f46e5', '#4338ca', '#3730a3'],
+      cssVars: {
+        '--color-primary': '#6366f1',
+        '--color-primary-dark': '#4f46e5',
+        '--color-secondary': '#4338ca',
+        '--color-accent': '#3730a3',
+        '--bg-primary': '#faf5ff',
+        '--bg-secondary': '#f3e8ff',
+        '--text-primary': '#312e81',
+        '--text-secondary': '#3730a3'
+      }
     }
   ];
 
@@ -199,36 +296,60 @@ const AdminSettingsPage = () => {
     await handleSaveSettings(newSettings);
   };
 
-  const applyColorPalette = (paletteId: string) => {
+  // Enhanced color palette application function
+  const applyColorPalette = async (paletteId: string) => {
     const palette = colorPalettes.find(p => p.id === paletteId);
     if (!palette) return;
 
-    // Apply CSS custom properties
+    // Apply CSS custom properties to the root element
     const root = document.documentElement;
-    root.style.setProperty('--color-primary', palette.colors[0]);
-    root.style.setProperty('--color-primary-dark', palette.colors[1]);
-    root.style.setProperty('--color-secondary', palette.colors[2]);
-    root.style.setProperty('--color-accent', palette.colors[3]);
+    
+    // Apply all CSS variables from the palette
+    Object.entries(palette.cssVars).forEach(([property, value]) => {
+      root.style.setProperty(property, value);
+    });
 
-    // Add palette class to body
-    document.body.className = document.body.className.replace(/palette-\w+/g, '');
+    // Remove existing palette classes and add new one
+    document.body.className = document.body.className.replace(/palette-[\w-]+/g, '');
     document.body.classList.add(`palette-${paletteId}`);
 
+    // Store the selection in localStorage for persistence
+    localStorage.setItem('selectedColorPalette', paletteId);
+
     // Save to settings
-    handleSaveSettings({
+    await handleSaveSettings({
       ...settings,
       colorPalette: paletteId
     });
+
+    console.log(`Applied color palette: ${palette.name}`);
   };
+
+  // Load saved color palette on component mount
+  React.useEffect(() => {
+    const savedPalette = localStorage.getItem('selectedColorPalette') || settings.colorPalette || 'default';
+    const palette = colorPalettes.find(p => p.id === savedPalette);
+    
+    if (palette) {
+      const root = document.documentElement;
+      Object.entries(palette.cssVars).forEach(([property, value]) => {
+        root.style.setProperty(property, value);
+      });
+      document.body.className = document.body.className.replace(/palette-[\w-]+/g, '');
+      document.body.classList.add(`palette-${savedPalette}`);
+    }
+  }, []);
 
   const getCurrentPalette = () => {
-    return colorPalettes.find(p => p.id === settings.colorPalette) || colorPalettes[5]; // Default to teal-cyan
+    const savedPalette = localStorage.getItem('selectedColorPalette') || settings.colorPalette;
+    return colorPalettes.find(p => p.id === savedPalette) || colorPalettes[0]; // Default to first palette
   };
 
-  // Enhanced password change handler
+  // Password change handler with real Supabase integration
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validation
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       setPasswordError('All fields are required');
       return;
@@ -249,33 +370,42 @@ const AdminSettingsPage = () => {
     setPasswordSuccess(false);
 
     try {
+      // Call the real updatePassword function from AuthContext
       await updatePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      
       setPasswordSuccess(true);
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
+      
       setTimeout(() => setPasswordSuccess(false), 5000);
-    } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : 'Failed to update password');
+    } catch (error: any) {
+      setPasswordError(error.message || 'Failed to update password. Please try again.');
     } finally {
       setPasswordLoading(false);
     }
   };
 
-  // Enhanced email change handler with password verification
+  // Email change handler with real Supabase integration
   const handleEmailChange = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!emailForm.newEmail || !emailForm.password) {
-      setEmailError('Please fill in all fields');
+    // Validation
+    if (!emailForm.newEmail || !emailForm.confirmEmail || !emailForm.password) {
+      setEmailError('All fields are required');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailForm.newEmail)) {
       setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    if (emailForm.newEmail !== emailForm.confirmEmail) {
+      setEmailError('Email addresses do not match');
       return;
     }
 
@@ -289,15 +419,19 @@ const AdminSettingsPage = () => {
     setEmailSuccess(false);
 
     try {
+      // Call the real updateEmail function from AuthContext
       await updateEmail(emailForm.newEmail, emailForm.password);
+      
       setEmailSuccess(true);
       setEmailForm({
         newEmail: '',
+        confirmEmail: '',
         password: ''
       });
+      
       setTimeout(() => setEmailSuccess(false), 5000);
-    } catch (error) {
-      setEmailError(error instanceof Error ? error.message : 'Failed to update email');
+    } catch (error: any) {
+      setEmailError(error.message || 'Failed to update email address. Please try again.');
     } finally {
       setEmailLoading(false);
     }
@@ -835,7 +969,7 @@ const AdminSettingsPage = () => {
                   </form>
                 </div>
 
-                {/* Change Email Address Section - Updated Version */}
+                {/* Change Email Address Section */}
                 <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-6">
                   <h4 className="font-medium text-slate-900 dark:text-slate-200 mb-4 flex items-center">
                     <Mail className="h-5 w-5 mr-2" />
@@ -873,6 +1007,20 @@ const AdminSettingsPage = () => {
                         onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
                         placeholder="Enter your new email address"
+                        disabled={emailLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Confirm New Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={emailForm.confirmEmail}
+                        onChange={(e) => setEmailForm({ ...emailForm, confirmEmail: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                        placeholder="Confirm your new email address"
                         disabled={emailLoading}
                       />
                     </div>
@@ -1172,21 +1320,22 @@ const AdminSettingsPage = () => {
                     Color Palette
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 mb-6">
-                    Choose a color scheme for your website
+                    Choose a color scheme that will be applied to the entire website, similar to how dark/light mode works.
                   </p>
                 </div>
 
                 {/* Color Palette Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {colorPalettes.map((palette) => {
-                    const isSelected = settings.colorPalette === palette.id;
+                    const currentPalette = getCurrentPalette();
+                    const isSelected = currentPalette.id === palette.id;
                     return (
                       <div
                         key={palette.id}
                         onClick={() => applyColorPalette(palette.id)}
                         className={`cursor-pointer rounded-lg border-2 p-4 transition-all duration-200 hover:shadow-md ${
                           isSelected 
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200' 
                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                         }`}
                       >
@@ -1203,7 +1352,7 @@ const AdminSettingsPage = () => {
                         
                         {/* Palette Info */}
                         <div>
-                          <h4 className={`font-medium mb-1 ${
+                          <h4 className={`font-medium mb-1 flex items-center ${
                             isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-900 dark:text-slate-200'
                           }`}>
                             {palette.name}
@@ -1243,6 +1392,16 @@ const AdminSettingsPage = () => {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Reset Button */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => applyColorPalette('default')}
+                    className="px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Reset to Default
+                  </button>
                 </div>
               </div>
             )}
